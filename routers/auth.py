@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Path, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, Path, APIRouter, Request
 from pydantic import BaseModel
 from models import users 
 from passlib.context import CryptContext
@@ -9,7 +9,8 @@ from starlette import status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt,JWTError
 from datetime import timedelta, datetime
-
+from fastapi.templating import Jinja2Templates
+import logging
 
 
 router = APIRouter(
@@ -48,8 +49,23 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+templates = Jinja2Templates(directory="templates")
 
 
+@router.get("/login-page")
+def render_login_page(request: Request):
+    logging.info("Rendering login page")  # Log when rendering the login page
+    return templates.TemplateResponse("login.html", {"request": request})
+    
+
+
+
+@router.get("/register-page")
+def render_register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+###Endpoints
 def authenticate_user(username: str, password: str, db):
     user = db.query(users).filter(users.username == username).first()
 
@@ -114,4 +130,3 @@ async def login_for_access_token(form_data:Annotated[OAuth2PasswordRequestForm, 
     token= create_access_token(user.username, user.id, user.role, timedelta(minutes = 20))
 
     return {'access_token': token, 'token_type': 'bearer'}
-
